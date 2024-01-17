@@ -1,33 +1,45 @@
 
 pub mod values;
+pub mod environment;
 
-
+use std::rc::Rc;
 use crate::lexer::tokens::{TokenValue, TokenType};
 use crate::parser::{self, Program};
 
-use values::{NumberVal, NullVal, RuntimeVal, ValueType};
+use tokio::runtime::Runtime;
+use values::{NumberVal, NullVal,RuntimeVal, RuntimeValue, ValueType};
+
+use self::environment::Environment;
 
 pub struct Interpreter {
     ast:Program,
+    env:Environment,
 }
 
 impl Interpreter {
     pub fn new(ast:Program) -> Self {
         Self {
             ast,
+            env:Environment::new(None),
         }
     }
   
-   pub fn eval_program(&mut self) -> Box<dyn RuntimeVal> {
-        self.ast.body.iter().map(|expr| self.eval(expr)).last().unwrap_or_else(|| Box::new(NullVal))
+   pub fn eval_program(&mut self, env:&Environment) -> Rc<dyn RuntimeValue> {
+    self.env = env.clone();
+
+    self.ast.body.iter()
+    .map(|expr| self.eval(expr, &self.env))
+    .last()
+    .unwrap_or_else(|| Rc::new(NullVal))
     }
 
-    fn eval(&self, expr: &TokenValue) -> Box<dyn RuntimeVal> {
+    fn eval(&self, expr: &TokenValue,  env:&Environment) -> Rc<dyn RuntimeValue> {
         match expr {
-            TokenValue::Number(n) => Box::new(NumberVal::new(*n)),
+            TokenValue::Number(n) => Rc::new(NumberVal::new(*n)),
+            TokenValue::Identifier(name) => self.iden(name, env),
             TokenValue::BinaryExpr(left, right, op) => {
-                let left_val = self.eval(left);
-                let right_val = self.eval(right);
+                let left_val = self.eval(left, env);
+                let right_val = self.eval(right, env);
 
                 match op {
                     TokenType::Plus => self.add(left_val, right_val),
@@ -42,7 +54,15 @@ impl Interpreter {
         }
     }
 
-    fn sub(&self, left: Box<dyn RuntimeVal>, right: Box<dyn RuntimeVal>) -> Box<dyn RuntimeVal> {
+
+    fn iden(&self, iden: &String, env: &Environment) -> Rc<dyn RuntimeValue> {
+        match env.lookup(iden) {
+            Some(val) => val.clone(),
+            None => Rc::new(NullVal),
+        }
+    }
+
+    fn sub(&self, left: Rc<dyn RuntimeValue>, right: Rc<dyn RuntimeValue>) -> Rc<dyn RuntimeValue> {
 
         match (left.as_ref(), right.as_ref()) {
             (left_val, right_val) => {
@@ -51,7 +71,7 @@ impl Interpreter {
                     // Perform addition
                     let left_number = left_val.as_any().downcast_ref::<NumberVal>().expect("Type mismatch");
                     let right_number = right_val.as_any().downcast_ref::<NumberVal>().expect("Type mismatch");
-                    Box::new(NumberVal::new(left_number.value() - right_number.value()))
+                    Rc::new(NumberVal::new(left_number.value() - right_number.value()))
                 } else {
                     // Handle other types or errors
                     unimplemented!()
@@ -60,7 +80,7 @@ impl Interpreter {
         }
     }
 
-    fn add(&self, left: Box<dyn RuntimeVal>, right: Box<dyn RuntimeVal>) -> Box<dyn RuntimeVal> {
+    fn add(&self, left: Rc<dyn RuntimeValue>, right: Rc<dyn RuntimeValue>) -> Rc<dyn RuntimeValue> {
         match (left.as_ref(), right.as_ref()) {
             (left_val, right_val) => {
                 // Check if both values are NumberVal
@@ -68,7 +88,7 @@ impl Interpreter {
                     // Perform addition
                     let left_number = left_val.as_any().downcast_ref::<NumberVal>().expect("Type mismatch");
                     let right_number = right_val.as_any().downcast_ref::<NumberVal>().expect("Type mismatch");
-                    Box::new(NumberVal::new(left_number.value() + right_number.value()))
+                    Rc::new(NumberVal::new(left_number.value() + right_number.value()))
                 } else {
                     // Handle other types or errors
                     unimplemented!()
@@ -77,7 +97,7 @@ impl Interpreter {
         }
     }
 
-    fn mul(&self, left: Box<dyn RuntimeVal>, right: Box<dyn RuntimeVal>) -> Box<dyn RuntimeVal> {
+    fn mul(&self, left: Rc<dyn RuntimeValue>, right: Rc<dyn RuntimeValue>) -> Rc<dyn RuntimeValue> {
         match (left.as_ref(), right.as_ref()) {
             (left_val, right_val) => {
                 // Check if both values are NumberVal
@@ -85,7 +105,7 @@ impl Interpreter {
                     // Perform addition
                     let left_number = left_val.as_any().downcast_ref::<NumberVal>().expect("Type mismatch");
                     let right_number = right_val.as_any().downcast_ref::<NumberVal>().expect("Type mismatch");
-                    Box::new(NumberVal::new(left_number.value() * right_number.value()))
+                    Rc::new(NumberVal::new(left_number.value() * right_number.value()))
                 } else {
                     // Handle other types or errors
                     unimplemented!()
@@ -94,7 +114,7 @@ impl Interpreter {
         }
     }
 
-    fn div(&self, left: Box<dyn RuntimeVal>, right: Box<dyn RuntimeVal>) -> Box<dyn RuntimeVal> {
+    fn div(&self, left: Rc<dyn RuntimeValue>, right: Rc<dyn RuntimeValue>) -> Rc<dyn RuntimeValue> {
         match (left.as_ref(), right.as_ref()) {
             (left_val, right_val) => {
                 // Check if both values are NumberVal
@@ -102,7 +122,7 @@ impl Interpreter {
                     // Perform addition
                     let left_number = left_val.as_any().downcast_ref::<NumberVal>().expect("Type mismatch");
                     let right_number = right_val.as_any().downcast_ref::<NumberVal>().expect("Type mismatch");
-                    Box::new(NumberVal::new(left_number.value() / right_number.value()))
+                    Rc::new(NumberVal::new(left_number.value() / right_number.value()))
                 } else {
                     // Handle other types or errors
                     unimplemented!()

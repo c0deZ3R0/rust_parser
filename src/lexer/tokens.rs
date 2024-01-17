@@ -1,5 +1,6 @@
 use logos::{Logos,Lexer, Span};
 use std::collections::HashMap;
+use std::rc::Rc;
 
 
 #[derive(Logos, Debug, PartialEq, Clone)]
@@ -46,6 +47,8 @@ pub enum TokenValue {
         /// An dictionary mapping keys and values.
     Object(HashMap<String, TokenValue>),
 
-    BinaryExpr(Box<TokenValue>, Box<TokenValue>, TokenType),
+    BinaryExpr(Rc<TokenValue>, Rc<TokenValue>, TokenType),
+
+    Identifier(String),
 
 }

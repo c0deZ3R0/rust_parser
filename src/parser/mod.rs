@@ -1,5 +1,6 @@
 
 use std::env;
+use std::rc::Rc;
 use logos::{Logos,Lexer,Span};
 
 use crate::lexer::tokens::{TokenValue, TokenType};
@@ -88,7 +89,7 @@ impl<'a> Parser<'a> {
                    
                     self.advance(); // Advance to get the right-hand side token
                     let right = self.parse_multiplicative_expr()?; // Parse the right-hand side
-                    left = TokenValue::BinaryExpr(Box::new(left), Box::new(right), operator.clone());
+                    left = TokenValue::BinaryExpr(Rc::new(left), Rc::new(right), operator.clone());
                 }
                 _ => break,
             }
@@ -107,7 +108,7 @@ impl<'a> Parser<'a> {
                     let operator = token.clone();
                     self.advance(); // Advance to get the right-hand side token
                     let right = self.parse_primary_expr()?; // Parse the right-hand side
-                    left = TokenValue::BinaryExpr(Box::new(left), Box::new(right), operator.clone());
+                    left = TokenValue::BinaryExpr(Rc::new(left), Rc::new(right), operator.clone());
                 }
                 _ => break,
             }
@@ -126,7 +127,7 @@ impl<'a> Parser<'a> {
             Some(Ok(TokenType::Identifier(s))) => {
                 
                 self.advance(); // Advance after parsing an identifier
-                Ok(TokenValue::String(s.clone()))
+                Ok(TokenValue::Identifier(s.clone()))
             }
             _ => Err(("unexpected token here (context: primary expression)".to_owned(), self.lexer.span())),
         }
