@@ -7,13 +7,9 @@ pub type Error = Box<dyn std::error::Error>; // For early dev. Later we will use
 // endregion: --- Modules
 
 pub mod consts {
-    pub const DEFAULT_SYSTEM_MOCK: &str = r#"    
+	pub const DEFAULT_SYSTEM_MOCK: &str = r#"    
     
         10 + 100 * ( 20 - 30 ) / 40
 
     "#;
-
-
-
-
 }
