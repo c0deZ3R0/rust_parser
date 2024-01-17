@@ -4,12 +4,14 @@ pub mod environment;
 
 use std::rc::Rc;
 use crate::lexer::tokens::{TokenValue, TokenType};
+use crate::lexer::tokens::TokenValue::{VarDeclaration, BinaryExpr, Number, Identifier};
 use crate::parser::{self, Program};
 
 use tokio::runtime::Runtime;
 use values::{NumberVal, NullVal,RuntimeVal, RuntimeValue, ValueType};
 
 use self::environment::Environment;
+use self::values::makenull;
 
 pub struct Interpreter {
     ast:Program,
@@ -24,19 +26,18 @@ impl Interpreter {
         }
     }
   
-   pub fn eval_program(&mut self, env:&Environment) -> Rc<dyn RuntimeValue> {
-    self.env = env.clone();
+    pub fn eval_program(&mut self, env: &mut Environment) -> Rc<dyn RuntimeValue> {
+      // Iterate over self.ast.body and evaluate each expression using the provided env
+      self.ast.body.iter()
+      .map(|expr| self.eval(expr, env)) // Pass the immutable reference directly
+      .last()
+      .unwrap_or_else(|| Rc::new(NullVal))
+}
 
-    self.ast.body.iter()
-    .map(|expr| self.eval(expr, &self.env))
-    .last()
-    .unwrap_or_else(|| Rc::new(NullVal))
-    }
-
-    fn eval(&self, expr: &TokenValue,  env:&Environment) -> Rc<dyn RuntimeValue> {
+    fn eval(&self, expr: &TokenValue,  env:&mut Environment) -> Rc<dyn RuntimeValue> {
         match expr {
+            
             TokenValue::Number(n) => Rc::new(NumberVal::new(*n)),
-            TokenValue::Null => Rc::new(NullVal),
             TokenValue::Identifier(name) => self.iden(name, env),
             TokenValue::BinaryExpr(left, right, op) => {
                 let left_val = self.eval(left, env);
@@ -56,11 +57,23 @@ impl Interpreter {
                     // Handle other operators
                     _ => unimplemented!(),
                 }
+            
             },
+            TokenValue::VarDeclaration(name, is_const, expr) => self.vardec(name, *is_const, Some(expr), env),
+ 
             _ => unimplemented!(),
         }
     }
 
+    fn vardec(&self, name: &str, is_const: bool, expr: Option<&TokenValue>, env: &mut Environment) -> Rc<dyn RuntimeValue> {
+        let value = match expr {
+            Some(expr_rc) => self.eval(expr_rc, env),
+            None => makenull(), 
+        };
+    
+        env.define(name.to_string(), value.clone(),is_const);
+        value
+    }
 
     fn iden(&self, iden: &String, env: &Environment) -> Rc<dyn RuntimeValue> {
         match env.lookup(iden) {

@@ -1,9 +1,10 @@
-
+// Module: parser
+// Path: src/parser/mod.rs
 use std::env;
 use std::rc::Rc;
 use logos::{Logos,Lexer,Span};
 
-use crate::lexer::tokens::{TokenValue, TokenType};
+use crate::{lexer::tokens::{TokenValue, TokenType}, runtime::values::{NullVal, makenull}};
 
 
  
@@ -44,6 +45,7 @@ impl<'a> Parser<'a> {
         while let Some(token_result) = self.current_token.clone() {
             match token_result {
                 Ok(token) => {
+                    
                     match self.parse_stmt() {
                         Ok(value) => program.body.push(value),
                         Err((msg, span)) => return Err((msg, span)),
@@ -59,17 +61,51 @@ impl<'a> Parser<'a> {
         }
 
         fn advance(&mut self) {
+            println!("{:#?}", self.current_token);
             self.current_token = self.lexer.next();
         }
     
     
+        fn parse_stmt(&mut self) -> ParseResult<TokenValue> {
+            match self.current_token.clone() {
+                Some(Ok(TokenType::Let)) | Some(Ok(TokenType::Const)) => {
+                    self.parse_vardec_stmt()
+                },
+                // Assuming parse_expr also returns ParseResult<TokenValue>
+                _ => self.parse_expr(),
+            }
+        }
 
-    fn parse_stmt(&mut self) -> ParseResult<TokenValue> {
-        // Your parsing logic here
-        // For example:
-        self.parse_expr()
+    fn parse_vardec_stmt(&mut self) ->  ParseResult<TokenValue>{
+        let mut is_const = self.current_token.clone().unwrap().unwrap() == TokenType::Const;
+        self.advance(); // Advance to get the identifier token
+        let identifier = match self.current_token.clone() {
+            Some(Ok(TokenType::Identifier(s))) => s,
+            _ => return Err(("expected identifier name following let | const keywords".to_owned(), self.lexer.span())),
+        };
+        self.advance(); // Advance to get the equals sign token
+        
+        match self.current_token.clone() {
+            Some(Ok(TokenType::Semicolon)) => {
+                if(is_const){
+                 return Err(("Must assign value to const declaration.".to_owned(), self.lexer.span()))
+                }         
+                Ok(TokenValue::VarDeclaration(identifier, is_const, Rc::new(TokenValue::Null)))
+            },
+            Some(Ok(TokenType::Equals)) => {
+                self.advance(); // Advance to get the expression token
+                let expr = self.parse_expr()?; // Parse the expression
+                match self.current_token.clone() {
+                    Some(Ok(TokenType::Semicolon)) => {
+                        Ok(TokenValue::VarDeclaration(identifier, is_const, Rc::new(expr)))
+                    },
+                    _ => Err(("expected semicolon after variable declaration".to_owned(), self.lexer.span())),
+                }
+            },
+            _ => Err(("expected equals sign after identifier name".to_owned(), self.lexer.span())),
+        }
+
     }
-    
     fn parse_expr(&mut self) -> ParseResult<TokenValue> {
         // Your parsing logic here
         // For example:

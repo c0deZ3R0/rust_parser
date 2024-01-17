@@ -1,13 +1,14 @@
 // src/runtime/environment.rs
 
 use std::rc::Rc;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use crate::runtime::values::RuntimeValue;
 
 #[derive(Clone)]
 pub struct Environment {
     parent: Option<Box<Environment>>,
     variables: HashMap<String, Rc<dyn RuntimeValue>>,
+    constants: HashSet<String>,
 }
 
 impl Environment {
@@ -15,19 +16,33 @@ impl Environment {
         Self {
             parent: parent_env.map(Box::new),
             variables: HashMap::new(),
+            constants: HashSet::new(),
         }
     }
 
-    pub fn define(&mut self, name: String, value: Rc<dyn RuntimeValue>) {
+    pub fn define(&mut self, name: String, value: Rc<dyn RuntimeValue>, constant: bool) {
+        if self.variables.contains_key(&name) || self.constants.contains(&name) {
+            panic!("Variable {} already defined", name);
+        }
+
+        if constant {
+            self.constants.insert(name.clone());
+        }
         self.variables.insert(name, value);
     }
     
     pub fn assign(&mut self, name: String, value: Rc<dyn RuntimeValue>) {
-        if let Some(env) = self.resolve(&name) {
-            env.variables.insert(name, value);
+        if self.constants.contains(&name) {
+            panic!("Cannot reassign a constant {}", name);
+        }
+
+        if let Some(variable) = self.variables.get_mut(&name) {
+            *variable = value;
+        } else if let Some(parent) = self.parent.as_mut() {
+            parent.assign(name, value);
         } else {
-            // Handle the case when the variable is not found
-            // For example, insert it into the current environment or raise an error
+            // Variable not found in the current environment and has no parent
+            panic!("Undefined variable {}", name);
         }
     }
 

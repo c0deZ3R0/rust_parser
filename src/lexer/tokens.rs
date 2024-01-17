@@ -20,6 +20,9 @@ pub enum TokenType {
     Divide,
     #[token("=")]
     Equals,
+    #[token(";")]
+    Semicolon,
+
     #[regex(r"(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?", |lex| lex.slice().parse::<f64>().unwrap())]
     Number(f64),
 
@@ -27,14 +30,18 @@ pub enum TokenType {
     Identifier(String),
 
     #[token("let")]
-    Let,  
+    Let,
+
+    #[token("const")]
+    Const,
+
 
 }
 
 
 #[derive(Debug)]
 pub enum TokenValue {
-    /// null.
+    /// The null value.
     Null,
     /// true or false.
     Bool(bool),
@@ -49,6 +56,10 @@ pub enum TokenValue {
 
     BinaryExpr(Rc<TokenValue>, Rc<TokenValue>, TokenType),
 
+    AssignmentExpr(Rc<TokenValue>, Rc<TokenValue>),
+
     Identifier(String),
+
+    VarDeclaration(String, bool, Rc<TokenValue>),
 
 }

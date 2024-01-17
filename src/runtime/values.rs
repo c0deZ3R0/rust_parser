@@ -26,8 +26,6 @@ pub fn makeruntime () -> Rc<dyn RuntimeValue> {
 pub fn makenumber(value: f64) -> Rc<dyn RuntimeValue> {
     Rc::new(NumberVal::new(value))
 }
-
-
 pub fn makebool(value: Option<bool>) -> Rc<dyn RuntimeValue> {
     let default_value = value.unwrap_or(true);
     Rc::new(BoolVal::new(default_value))
