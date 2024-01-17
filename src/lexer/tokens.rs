@@ -35,7 +35,7 @@ pub enum TokenType {
 	Const,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum TokenValue {
 	/// The null value.
 	Null,

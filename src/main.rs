@@ -10,7 +10,7 @@ use crate::runtime::values::{
 use std::rc::Rc;
 
 fn main() {
-	let source_code = "const MY_CONST;";
+	let source_code = "const MY_CONST = 20; let x = 10; let y = 20; let z = x + y; z + MY_CONST; x = z; x;";
 	let mut parser = parser::Parser::new(source_code);
 	let mut env = Environment::new(None);
 
