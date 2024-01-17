@@ -10,15 +10,6 @@ unsafe_code = "forbid"
 unused = "allow" # For exploratory dev.
 
 [dependencies]
-# -- Async
-tokio = { version = "1.0", features = ["full"] }
-futures  = "0.3"
-
-# --Files
-simple-fs = { version = "0.1", features = ["full"] }
-
-# -- Others
-derive_more ={ version = "1.0.0-beta", features = ["from"] }
 
 logos = { version = "0.13.0" }
 watch = "0.2.3"

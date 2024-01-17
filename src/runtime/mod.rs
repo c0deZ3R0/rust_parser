@@ -8,7 +8,6 @@ use crate::lexer::tokens::{TokenType, TokenValue};
 use crate::parser::{self, Program};
 use std::rc::Rc;
 
-use tokio::runtime::Runtime;
 use values::{NullVal, NumberVal, RuntimeVal, RuntimeValue, ValueType};
 
 use self::environment::Environment;

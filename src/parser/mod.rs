@@ -43,8 +43,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn produce_ast(mut self) -> ParseResult<Program> {
-        
+    pub fn produce_ast(mut self) -> ParseResult<Program> {       
    
         let mut program = Program {
             body: Vec::new(),

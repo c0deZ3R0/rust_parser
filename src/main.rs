@@ -10,17 +10,15 @@ use crate::runtime::values::{
 use std::rc::Rc;
 
 fn main() {
-	let source_code = "const MY_CONST = 20; let x = 10; let y = 20; let z = x + y; z + MY_CONST; x = z; x;";
-	let mut parser = parser::Parser::new(source_code);
+	
+	let mut source_code = "const MY_CONST = 20; let x = 10; let y = 20; let z = x + y; z + MY_CONST; x = z; x";
+	// Add a constant declaration
+	
+	
+	let mut parser = parser::Parser::new(&source_code);
 	let mut env = Environment::new(None);
 
-	//env.define("x".to_string(), makenumber(110.00), false);
-	//env.define("true".to_string(), makebool(Some(true)));
-	//env.define("false".to_string(), makebool(Some(false)));
-
 	let ast = parser.produce_ast();
-	println!("{:#?}", ast);
-
 	let mut interpreter = runtime::Interpreter::new(ast.unwrap());
 
 	let result = interpreter.eval_program(&mut env);
