@@ -1,6 +1,11 @@
 // Module: parser
 // Path: src/parser/mod.rs
 
+mod expressions;
+use expressions::{parse_expr, parse_additive_expr, parse_multiplicative_expr, parse_primary_expr};
+
+mod statements;
+use statements::{parse_stmt, parse_vardec_stmt};
 
 use std::{env, string};
 use std::rc::Rc;
@@ -49,7 +54,7 @@ impl<'a> Parser<'a> {
             match token_result {
                 Ok(token) => {
                     
-                    match self.parse_stmt() {
+                    match parse_stmt(&mut self) {
                         Ok(value) => program.body.push(value),
                         Err((msg, span)) => return Err((msg, span)),
                     }
@@ -73,117 +78,6 @@ impl<'a> Parser<'a> {
             token
         }
     
-    
-        fn parse_stmt(&mut self) -> ParseResult<TokenValue> {
-            match self.current_token {
-                Some(Ok(TokenType::Let)) | Some(Ok(TokenType::Const)) => {
-                    self.parse_vardec_stmt()
-                },
-                // Assuming parse_expr also returns ParseResult<TokenValue>
-                _ => self.parse_expr(),
-            }
-        }
-
-    fn parse_vardec_stmt(&mut self) ->  ParseResult<TokenValue>{
-        
-        let is_const =  match self.current_token.take() {
-            Some(Ok(TokenType::Const)) => true,
-            _ => false,
-        };
-        self.advance(); // Advance to get the identifier token
-        
-        let identifier = match &self.current_token.take() {
-            Some(Ok(TokenType::Identifier(s))) => {
-                // Clone the string here to avoid moving out of borrowed context
-                let identifier = s.clone();
-                Ok(identifier)
-            },
-            _ => Err(("expected identifier name following let | const keywords".to_owned(), self.lexer.span())),
-        };
-        
-        
-        self.advance(); 
-        
-        match &self.current_token {
-            Some(Ok(TokenType::Semicolon)) => {
-                if(is_const){
-                 return Err(("Must assign value to const declaration.".to_owned(), self.lexer.span()))
-                }         
-                Ok(TokenValue::VarDeclaration(identifier?, false, Rc::new(TokenValue::Null)))
-            },
-            Some(Ok(TokenType::Equals)) => {
-                self.advance(); // Advance to get the expression token
-                let expr = self.parse_expr()?; // Parse the expression
-                match &self.current_token {
-                    Some(Ok(TokenType::Semicolon)) => {
-                        Ok(TokenValue::VarDeclaration(identifier?, is_const, Rc::new(expr)))
-                    },
-                    _ => Err(("expected semicolon after variable declaration".to_owned(), self.lexer.span())),
-                }
-            },
-            _ => Err(("expected equals sign after identifier name".to_owned(), self.lexer.span())),
-        }
-
-    }
-    
-  
-
-    
-    fn parse_expr(&mut self) -> ParseResult<TokenValue> {
-     
-        self.parse_additive_expr()
-    }
-
-    fn parse_additive_expr(&mut self) -> ParseResult<TokenValue> {
-        let mut left = self.parse_multiplicative_expr()?;
-        while let Some(Ok(token)) = &self.current_token {
-            match token {
-                TokenType::Plus | TokenType::Minus => {
-                    let operator = token.clone(); // Copy the token (cheap for simple enums)
-                    self.advance();
-                    let right = self.parse_multiplicative_expr()?;
-                    left = TokenValue::BinaryExpr(Rc::new(left), Rc::new(right), operator);
-                },
-                _ => break,
-            }
-        }
-        Ok(left)
-    }
-    
-    fn parse_multiplicative_expr(&mut self) -> ParseResult<TokenValue> {
-        let mut left = self.parse_primary_expr()?;
-        while let Some(Ok(ref token)) = self.current_token {
-            match *token {
-                TokenType::Times | TokenType::Divide => {
-                    let operator = token.clone();
-                    self.advance();
-                    let right = self.parse_primary_expr()?;
-                    left = TokenValue::BinaryExpr(Rc::new(left), Rc::new(right), operator);
-                },
-                _ => break,
-            }
-        }
-        Ok(left)
-    }
-    
-    fn parse_primary_expr(&mut self) -> ParseResult<TokenValue> {
-       let current_token = self.current_token.take();
-    
-        match current_token {
-            Some(Ok(TokenType::Number(n))) => {
-                self.advance();
-                Ok(TokenValue::Number(n)) 
-            },
-            Some(Ok(TokenType::Identifier(s))) => {
-                self.advance();
-                Ok(TokenValue::Identifier(s)) 
-            },
-            _ => {
-                self.current_token = current_token;
-                Err(("unexpected token in primary expression".to_owned(), self.lexer.span()))
-            }
-        }
-    }
 }
 
 
