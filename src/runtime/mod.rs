@@ -36,12 +36,19 @@ impl Interpreter {
     fn eval(&self, expr: &TokenValue,  env:&Environment) -> Rc<dyn RuntimeValue> {
         match expr {
             TokenValue::Number(n) => Rc::new(NumberVal::new(*n)),
+            TokenValue::Null => Rc::new(NullVal),
             TokenValue::Identifier(name) => self.iden(name, env),
             TokenValue::BinaryExpr(left, right, op) => {
                 let left_val = self.eval(left, env);
                 let right_val = self.eval(right, env);
 
+                if left_val.get_type() == ValueType::Null || right_val.get_type() == ValueType::Null {
+                    return Rc::new(NullVal);
+                }
+
+
                 match op {
+
                     TokenType::Plus => self.add(left_val, right_val),
                     TokenType::Minus => self.sub(left_val, right_val),
                     TokenType::Times => self.mul(left_val, right_val),
@@ -89,9 +96,10 @@ impl Interpreter {
                     let left_number = left_val.as_any().downcast_ref::<NumberVal>().expect("Type mismatch");
                     let right_number = right_val.as_any().downcast_ref::<NumberVal>().expect("Type mismatch");
                     Rc::new(NumberVal::new(left_number.value() + right_number.value()))
-                } else {
-                    // Handle other types or errors
-                    unimplemented!()
+                } else {              
+                        // Handle other types or errors
+                        unimplemented!()                  
+                    
                 }
             }
         }
