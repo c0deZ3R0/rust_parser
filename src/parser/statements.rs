@@ -1,14 +1,13 @@
-use crate::lexer::tokens::{TokenType, TokenValue};
 use logos::{Lexer, Span};
 use std::rc::Rc;
 
 use crate::parser::expressions::parse_expr;
+use crate::tokens::*;
+
+use crate::ParserError;
+type ParseResult<T> = Result<T, ParserError>;
 
 use super::Parser;
-// Other necessary imports...
-
-type Error = (String, Span);
-type ParseResult<T> = std::result::Result<T, Error>;
 
 pub fn parse_stmt(parser: &mut Parser) -> ParseResult<TokenValue> {
 	match parser.current_token {
@@ -19,6 +18,7 @@ pub fn parse_stmt(parser: &mut Parser) -> ParseResult<TokenValue> {
 		_ => parse_expr(parser),
 	}
 }
+
 
 pub fn parse_vardec_stmt(parser: &mut Parser) -> ParseResult<TokenValue> {
 	let is_const = match parser.current_token.take() {
@@ -33,10 +33,7 @@ pub fn parse_vardec_stmt(parser: &mut Parser) -> ParseResult<TokenValue> {
 			let identifier = s.clone();
 			Ok(identifier)
 		}
-		_ => Err((
-			"expected identifier name following let | const keywords".to_owned(),
-			parser.lexer.span(),
-		)),
+		_ => Err(ParserError::ConstLetMissingIdentifier(parser.lexer.span())),
 	};
 
 	parser.advance();
@@ -44,10 +41,7 @@ pub fn parse_vardec_stmt(parser: &mut Parser) -> ParseResult<TokenValue> {
 	match &parser.current_token {
 		Some(Ok(TokenType::Semicolon)) => {
 			if (is_const) {
-				return Err((
-					"Must assign value to const declaration.".to_owned(),
-					parser.lexer.span(),
-				));
+				return Err(ParserError::ConstDeclarationMissingValue(parser.lexer.span()));
 			}
 			Ok(TokenValue::VarDeclaration(
 				identifier?,
@@ -56,23 +50,19 @@ pub fn parse_vardec_stmt(parser: &mut Parser) -> ParseResult<TokenValue> {
 			))
 		}
 		Some(Ok(TokenType::Equals)) => {
-			parser.advance(); // Advance to get the expression token
-			let expr = parse_expr(parser)?; // Parse the expression
+			parser.advance(); 
+			let expr = parse_expr(parser)?;
 			match &parser.current_token {
 				Some(Ok(TokenType::Semicolon)) => Ok(TokenValue::VarDeclaration(
 					identifier?,
 					is_const,
 					Rc::new(expr),
 				)),
-				_ => Err((
-					"expected semicolon after variable declaration".to_owned(),
-					parser.lexer.span(),
+				_ => Err(((ParserError::MissingSemicolon(parser.lexer.span()))
 				)),
 			}
 		}
-		_ => Err((
-			"expected equals sign after identifier name".to_owned(),
-			parser.lexer.span(),
+		_ => Err(((ParserError::MissingEqualsSign(parser.lexer.span()))
 		)),
 	}
 }

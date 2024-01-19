@@ -1,12 +1,12 @@
-use crate::lexer::tokens::{TokenType, TokenValue};
+use crate::tokens::{TokenType, TokenValue};
 use logos::{Lexer, Span};
 use std::rc::Rc;
 
 use super::Parser;
 // Other necessary imports...
 
-type Error = (String, Span);
-type ParseResult<T> = std::result::Result<T, Error>;
+use crate::ParserError;
+type ParseResult<T> = Result<T, ParserError>;
 
 pub fn parse_expr(parser: &mut Parser) -> ParseResult<TokenValue> {
 	parse_additive_expr(parser)
@@ -58,12 +58,6 @@ pub fn parse_primary_expr(parser: &mut Parser) -> ParseResult<TokenValue> {
 			parser.advance();
 			Ok(TokenValue::Identifier(s))
 		}
-		_ => {
-			parser.current_token = current_token;
-			Err((
-				"unexpected token in primary expression".to_owned(),
-				parser.lexer.span(),
-			))
-		}
+		_ => Err(ParserError::LexerError("parse_primary_expr".to_string(),parser.lexer.span())),
 	}
 }

@@ -1,6 +1,9 @@
 use logos::{Lexer, Logos, Span};
 use std::collections::HashMap;
+use std::fmt;
 use std::rc::Rc;
+
+
 
 #[derive(Logos, Debug, PartialEq, Clone)]
 #[logos(skip r"[ \t\n\f]+")] // new way to annotate whitespace

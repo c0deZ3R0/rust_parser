@@ -1,11 +1,9 @@
 pub mod environment;
 pub mod values;
 
-use crate::lexer::tokens::TokenValue::{
-	BinaryExpr, Identifier, Number, VarDeclaration,
-};
-use crate::lexer::tokens::{TokenType, TokenValue};
 use crate::parser::{self, Program};
+use crate::tokens::TokenValue::{BinaryExpr, Identifier, Number, VarDeclaration};
+use crate::tokens::{TokenType, TokenValue};
 use std::rc::Rc;
 
 use values::{NullVal, NumberVal, RuntimeVal, RuntimeValue, ValueType};

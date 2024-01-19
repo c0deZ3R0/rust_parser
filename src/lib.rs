@@ -1,34 +1,19 @@
-// region:    --- Modules
+//lib.rs
 
-pub mod lexer;
+// region:    --- Modules
+mod errors;
 pub mod parser;
 pub mod runtime;
-pub use crate::runtime::environment::Environment;
-pub use crate::runtime::values::{
-	makebool, makenumber, NullVal, NumberVal, RuntimeValue, ValueType,
-};
-
-pub type Error = Box<dyn std::error::Error>;
+pub mod tokens;
 
 // endregion: --- Modules
 
-#[cfg(test)]
-mod tests {
-	use self::runtime::Interpreter;
+pub type Error = Box<dyn std::error::Error>;
 
-use super::*;
+// region:    --- Imports
 
-	#[test]
-	fn test_parser() {
-		let source_code = "let x = 5; let y = 10; let z = x + y;";
-		let mut interpreter = match parser::Parser::new(&source_code).produce_ast() {
-			Ok(ast) => Interpreter::new(ast),
-			Err(e) => {
-				// Handle the error here, e.g., log it or convert it into a different format
-				panic!("Parser error: {:?}", e);
-			}
-		};
-	}
-}
-	
+pub use crate::errors::ParserError;
+pub use crate::runtime::environment::Environment;
+pub use crate::runtime::values::*;
 
+// endregion: --- Imports

@@ -1,26 +1,30 @@
 // Module: parser
 // Path: src/parser/mod.rs
 
+// region:    --- Modules
 mod expressions;
-use expressions::{
-	parse_additive_expr, parse_expr, parse_multiplicative_expr, parse_primary_expr,
-};
-
 mod statements;
-use statements::{parse_stmt, parse_vardec_stmt};
+
+// endregion: --- Modules
+
+// region:    --- Imports
+use crate::ParserError;
 
 use logos::{Lexer, Logos, Span};
+
+use crate::tokens::*;
+use expressions::*;
+use statements::*;
 use std::rc::Rc;
-use std::{env, string};
+
+// endregion: --- Imports
 
 use crate::{
-	lexer::tokens::{TokenType, TokenValue},
 	runtime::values::{makenull, NullVal},
+	tokens::{TokenType, TokenValue},
 };
 
-type Error = (String, Span);
-
-type ParseResult<T> = std::result::Result<T, Error>;
+type ParseResult<T> = Result<T, ParserError>;
 
 #[derive(Debug)]
 pub struct Program {
@@ -46,33 +50,37 @@ impl<'a> Parser<'a> {
 
 	pub fn produce_ast(mut self) -> ParseResult<Program> {
 		let mut program = Program { body: Vec::new() };
-
+	
 		while let Some(token_result) = self.current_token.clone() {
 			match token_result {
-				Ok(token) => match parse_stmt(&mut self) {
+				Ok(_) => match parse_stmt(&mut self) {
 					Ok(value) => program.body.push(value),
-					Err((msg, span)) => return Err((msg, span)),
+					Err(e) => return Err(e),
 				},
 				Err(_) => {
-					return Err(("Lexer error".to_string(), self.lexer.span()))
+					return Err(ParserError::LexerError(
+						"produce_ast".to_string(),
+						self.lexer.span(),
+					));
 				}
 			}
-			self.advance(); // Advance to the next token after processing
+			self.advance();
 		}
-
+	
 		Ok(program)
 	}
-
 	fn advance(&mut self) {
 		self.current_token = self.lexer.next();
 	}
 
 	fn next_token(&mut self) -> Option<Result<TokenType, ()>> {
-		let token = self.current_token.take(); // Take the current token
-		self.current_token = self.lexer.next(); // Advance to the next token
+		let token = self.current_token.take(); 
+		self.current_token = self.lexer.next(); 
 		token
 	}
 }
+
+// region:    --- Tests
 
 #[cfg(test)]
 use super::*;
@@ -183,14 +191,10 @@ fn test_const_declaration_without_value_should_fail() {
 		Ok(_) => panic!(
 			"Parser should fail on const declaration without an initial value"
 		),
-		Err((msg, _)) => {
-			// Check if the error message is what we expect
-			assert!(
-				msg.contains("Must assign value to const declaration."),
-				"Unexpected error message: {}",
-				msg
-			);
-		}
+		Err(e) => match e {
+			ParserError::ConstDeclarationMissingValue(_) => {} // Test passes
+			_ => panic!("Unexpected error type: {:?}", e),
+		},
 	}
 }
 
@@ -364,4 +368,5 @@ fn test_whitespace_independence() {
 		_ => panic!("Expected a binary expression as the third element"),
 	}
 }
-// Additional tests...
+
+// endregion: --- Tests
