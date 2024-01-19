@@ -1,16 +1,21 @@
 [package]
-name = "xp_lexing"
+name = "rust_parser"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.60"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "rust_parser"
+path = "src/lib.rs"
 
 [lints.rust]
 unsafe_code = "forbid"
 unused = "allow" # For exploratory dev.
 
-[dependencies]
 
+[dependencies]
 logos = { version = "0.13.0" }
-watch = "0.2.3"
+
 
