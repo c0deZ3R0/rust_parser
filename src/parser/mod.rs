@@ -369,4 +369,17 @@ fn test_whitespace_independence() {
 	}
 }
 
+#[test]
+fn test_boolean_literal() {
+	let source_code = "true";
+	let mut parser = Parser::new(source_code);
+	let ast = parser.produce_ast().expect("Failed to parse boolean literal");
+
+	assert_eq!(ast.body.len(), 1);
+	match &ast.body[0] {
+		TokenValue::Identifier(b) => assert_eq!(b, "true"),
+		_ => panic!("Expected a boolean literal"),
+	}
+}
+
 // endregion: --- Tests

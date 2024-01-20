@@ -4,6 +4,7 @@ pub mod values;
 use crate::parser::{self, Program};
 use crate::tokens::TokenValue::{BinaryExpr, Identifier, Number, VarDeclaration};
 use crate::tokens::{TokenType, TokenValue};
+use std::env::var;
 use std::rc::Rc;
 
 use values::{NullVal, NumberVal, RuntimeVal, RuntimeValue, ValueType};
@@ -11,6 +12,7 @@ use values::{NullVal, NumberVal, RuntimeVal, RuntimeValue, ValueType};
 use self::environment::Environment;
 use self::values::makenull;
 
+//TODO:Define error type for this
 pub struct Interpreter {
 	ast: Program,
 	env: Environment,
@@ -29,19 +31,20 @@ impl Interpreter {
 		self.ast
 			.body
 			.iter()
-			.map(|expr| self.eval(expr, env)) // Pass the immutable reference directly
+			.map(|expr| self.eval(expr, env)) // Pass the mutable reference directly
 			.last()
 			.unwrap_or_else(|| Rc::new(NullVal))
 	}
 
 	fn eval(
 		&self,
-		expr: &TokenValue,
+		token: &TokenValue,
 		env: &mut Environment,
 	) -> Rc<dyn RuntimeValue> {
-		match expr {
+		match token {
 			TokenValue::Number(n) => Rc::new(NumberVal::new(*n)),
 			TokenValue::Identifier(name) => self.iden(name, env),
+			TokenValue::AssignmentExpr(expr, value) => self.eval_assignment(token, expr, value, env),
 			TokenValue::BinaryExpr(left, right, op) => {
 				let left_val = self.eval(left, env);
 				let right_val = self.eval(right, env);
@@ -62,35 +65,93 @@ impl Interpreter {
 				}
 			}
 			TokenValue::VarDeclaration(name, is_const, expr) => {
-				self.vardec(name, *is_const, Some(expr), env)
-			}
+			
+				println!("{} {} {:?}", name, is_const, expr);
+				self.vardec(name, *is_const, expr, env)
+
+				
+			},
+			
 
 			_ => unimplemented!(),
 		}
 	}
 
+
+	fn eval_assignment(
+		&self,
+		handler: &TokenValue,
+		expr: &TokenValue,
+		value: &TokenValue,
+		env: &mut Environment,
+	) -> Rc<dyn RuntimeValue> {
+
+		
+
+		match handler{
+			TokenValue::AssignmentExpr(_,_) =>
+			{
+				let varname = match expr {
+					TokenValue::Identifier(name) => name,
+					_ => unimplemented!(),
+				};
+
+				let evaluated_value = self.eval(value, env);
+
+				env.assign(varname.to_string(), evaluated_value.clone());
+				evaluated_value
+			}
+			_ => unimplemented!(),		}
+			//TODO:Define error type for this
+		}
+	
+	
+	
+	
+
+
 	fn vardec(
 		&self,
 		name: &str,
 		is_const: bool,
-		expr: Option<&TokenValue>,
+		expr: &TokenValue,
 		env: &mut Environment,
 	) -> Rc<dyn RuntimeValue> {
+		
+		
+		match expr {	
+			TokenValue::Null => {
+				env.define(name.to_string(), Rc::new(NullVal), is_const);
+				return Rc::new(NullVal);
+			}
+
+			
+			_ => (),
+
+		}
+
 		let value = match expr {
-			Some(expr_rc) => self.eval(expr_rc, env),
-			None => makenull(),
+			expr_rc => self.eval(expr_rc, env),
+			
 		};
+		
 
 		env.define(name.to_string(), value.clone(), is_const);
 		value
 	}
 
+	
+	
+	
+	
 	fn iden(&self, iden: &String, env: &Environment) -> Rc<dyn RuntimeValue> {
 		match env.lookup(iden) {
 			Some(val) => val.clone(),
 			None => Rc::new(NullVal),
 		}
 	}
+
+	
 
 	fn sub(
 		&self,
@@ -216,3 +277,72 @@ impl Interpreter {
 		}
 	}
 }
+
+
+#[cfg(test)]
+	#[test]
+	fn test_eval_number() {
+		let mut interpreter = Interpreter::new(Program {
+			body: vec![TokenValue::Number(1.0)],
+		});
+		let mut env = Environment::new(None);
+		let result = interpreter.eval_program(&mut env);
+		assert_eq!(result.get_type(), ValueType::Number);
+		assert_eq!(
+			result.as_any().downcast_ref::<NumberVal>().unwrap().value(),
+			1.0
+		);
+	}
+
+	#[test]
+	fn test_eval_identifier() {
+		let mut interpreter = Interpreter::new(Program {
+			body: vec![TokenValue::Identifier("x".to_string())],
+		});
+		let mut env = Environment::new(None);
+		env.define("x".to_string(), Rc::new(NumberVal::new(1.0)), false);
+		let result = interpreter.eval_program(&mut env);
+		assert_eq!(result.get_type(), ValueType::Number);
+		assert_eq!(
+			result.as_any().downcast_ref::<NumberVal>().unwrap().value(),
+			1.0
+		);
+	}
+
+	#[test]
+	fn test_variable_decleration_with_number() {
+		let mut interpreter = Interpreter::new(Program {
+			body: vec![TokenValue::VarDeclaration(
+				"x".to_string(),
+				false,
+				Rc::new(TokenValue::Number(1.0)),
+			)],
+		});
+		let mut env = Environment::new(None);
+		let result = interpreter.eval_program(&mut env);
+		assert_eq!(result.get_type(), ValueType::Number);
+		assert_eq!(
+			result.as_any().downcast_ref::<NumberVal>().unwrap().value(),
+			1.0
+		);
+	}
+
+	#[test]
+	fn test_variable_decleration_without_value() {
+		let mut interpreter = Interpreter::new(Program {
+			body: vec![TokenValue::VarDeclaration(
+				"x".to_string(),
+				false,
+				Rc::new(TokenValue::Null),
+			)],
+		});
+		let mut env = Environment::new(None);
+		let result = interpreter.eval_program(&mut env);
+		assert_eq!(result.get_type(), ValueType::Null);
+	}
+
+	
+
+
+
+

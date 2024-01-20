@@ -5,6 +5,13 @@ use std::rc::Rc;
 
 
 
+impl fmt::Display for TokenType {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		write!(f, "{:?}", self)
+	}
+}
+
+
 #[derive(Logos, Debug, PartialEq, Clone)]
 #[logos(skip r"[ \t\n\f]+")] // new way to annotate whitespace
 pub enum TokenType {
@@ -33,9 +40,9 @@ pub enum TokenType {
 
 	#[token("let")]
 	Let,
-
 	#[token("const")]
 	Const,
+
 }
 
 #[derive(Debug, PartialEq)]

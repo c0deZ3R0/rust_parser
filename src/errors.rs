@@ -3,6 +3,43 @@ use std::fmt;
 
 use logos::Span;
 
+// region:    --- Environment Error
+
+pub enum EnvironmentError {
+	VariableAlreadyDefined(String),
+	VariableNotDefined(String),
+	VariableCannotBeReassigned(String),
+	ConstantAlreadyDefined(String),
+	ConstantCannotBeReassigned(String),
+}
+
+impl fmt::Display for EnvironmentError {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		match self {
+			EnvironmentError::VariableAlreadyDefined(name) => {
+				write!(f, "Variable {} already defined", name)
+			}
+			EnvironmentError::VariableNotDefined(name) => {
+				write!(f, "Variable {} not defined", name)
+			}
+			EnvironmentError::VariableCannotBeReassigned(name) => {
+				write!(f, "Variable {} cannot be reassigned", name)
+			}
+			EnvironmentError::ConstantAlreadyDefined(name) => {
+				write!(f, "Constant {} already defined", name)
+			}
+			EnvironmentError::ConstantCannotBeReassigned(name) => {
+				write!(f, "Constant {} cannot be reassigned", name)
+			}
+		}
+	}
+}
+
+// endregion: --- Environment Error
+
+
+// region:    --- Parser Error
+
 #[derive(Debug)]
 pub enum ParserError {
 	UnexpectedToken(String, Span),
@@ -14,6 +51,7 @@ pub enum ParserError {
 	MissingSemicolon(Span),
 	ConstDeclarationMissingValue(Span),
 	ConstLetMissingIdentifier(Span),
+	PrimaryExprError(String)
 	// Add more error types as needed
 }
 
@@ -28,6 +66,9 @@ impl From<(String, std::ops::Range<usize>)> for ParserError {
 impl fmt::Display for ParserError {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		match self {
+			
+			ParserError::PrimaryExprError(msg) => write!(f, "Primary expression error: {}", msg),
+
 			ParserError::UnexpectedToken(expected, span) => {
 				write!(f, "Unexpected token {:?} at {:?}", expected, span)
 			}
@@ -54,3 +95,6 @@ impl fmt::Display for ParserError {
 }
 
 impl std::error::Error for ParserError {}
+
+
+// endregion: --- Parser Error
